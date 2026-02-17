@@ -47,9 +47,9 @@ export const Table: React.FC<TableProps> = ({ headers, rows, style }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {(rows || []).map((row, i) => (
+                    {(Array.isArray(rows) ? rows : []).map((row, i) => (
                         <tr key={i} style={{ transition: 'background 0.2s ease' }}>
-                            {(row || []).map((cell, j) => (
+                            {(Array.isArray(row) ? row : []).map((cell, j) => (
                                 <td key={j} style={tdStyle}>{cell}</td>
                             ))}
                         </tr>

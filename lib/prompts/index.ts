@@ -93,10 +93,11 @@ Convert a structured UI plan into valid React code that prioritizes premium aest
 ## Logic & State Handling
 - useAppState: Returns { state, setState, updateMetadata, addToCart, addNotification }.
   Example: const { state, addNotification } = useAppState();
-- useDataFetch: 'const { data, loading, fetchItems } = useDataFetch(dataSource);'
-- Use 'useEffect(() => { fetchItems(); }, [])' for initial load.
+- useDataFetch(dataSource, delay): Returns { data: any[], loading: boolean, error: string|null, fetchItems: Function }. 
+  NOTE: This hook AUTOMATICALLY fetches data. Do NOT use it as an array (it is an object).
+  Example: const { data, loading } = useDataFetch(MOCK_DATA.products);
+- use LoadingSpinner while loading is true.
 - Ensure 'children' in Tabs is a function: '(activeTabId) => <Content id={activeTabId} />'
-- Use LoadingSpinner while loading is true.
 
 Return ONLY a single React arrow function.
 `;

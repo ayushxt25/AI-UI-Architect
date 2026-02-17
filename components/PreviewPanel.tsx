@@ -3,8 +3,9 @@
 import React from 'react';
 import { LiveProvider, LiveError, LivePreview } from 'react-live';
 import * as UI from './ui';
-import { AppStateProvider, useAppState } from '@/lib/state/appState';
+import { AppStateProvider, useAppState, useDataFetch } from '@/lib/state/appState';
 import { MOCK_DATA } from '@/lib/mock/dataGenerator';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface PreviewPanelProps {
     code: string;
@@ -35,7 +36,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ code }) => {
 
             <div style={{ flex: 1, overflow: 'auto', padding: '20px', position: 'relative' }}>
                 <AppStateProvider>
-                    <LiveProvider code={code} scope={{ ...UI, useAppState, MOCK_DATA, React }} noInline={false}>
+                    <LiveProvider code={code} scope={{ ...UI, useAppState, useDataFetch, MOCK_DATA, React, useEffect: React.useEffect, useState: React.useState }} noInline={false}>
                         <div style={{
                             minHeight: '100%',
                             background: '#1e293b',
@@ -44,7 +45,9 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ code }) => {
                             padding: '24px',
                             boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
                         }}>
-                            <LivePreview />
+                            <ErrorBoundary>
+                                <LivePreview />
+                            </ErrorBoundary>
                         </div>
                         <div style={{
                             position: 'absolute',

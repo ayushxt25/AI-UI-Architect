@@ -57,11 +57,11 @@ export const useDataFetch = (dataSource: any[], delay = 1500) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchItems = async (filter?: (item: any) => boolean) => {
+    const fetchItems = React.useCallback(async (filter?: (item: any) => boolean) => {
         setLoading(true);
-        await new Promise(r => setTimeout(r, delay));
         try {
-            const sourceArray = dataSource || [];
+            await new Promise(r => setTimeout(r, delay));
+            const sourceArray = Array.isArray(dataSource) ? dataSource : [];
             const filtered = filter ? sourceArray.filter(filter) : sourceArray;
             setData(filtered);
             setError(null);
@@ -70,7 +70,11 @@ export const useDataFetch = (dataSource: any[], delay = 1500) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [dataSource, delay]);
+
+    React.useEffect(() => {
+        fetchItems();
+    }, [fetchItems]);
 
     return { data, loading, error, fetchItems };
 };
