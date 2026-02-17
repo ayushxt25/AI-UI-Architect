@@ -51,3 +51,26 @@ export const useAppState = () => {
     if (!context) throw new Error('useAppState must be used within AppStateProvider');
     return context;
 };
+
+export const useDataFetch = (dataSource: any[], delay = 1500) => {
+    const [data, setData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchItems = async (filter?: (item: any) => boolean) => {
+        setLoading(true);
+        await new Promise(r => setTimeout(r, delay));
+        try {
+            const sourceArray = dataSource || [];
+            const filtered = filter ? sourceArray.filter(filter) : sourceArray;
+            setData(filtered);
+            setError(null);
+        } catch (e) {
+            setError('Failed to fetch data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { data, loading, error, fetchItems };
+};

@@ -1,15 +1,23 @@
 import OpenAI from 'openai';
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'mock-key';
-
-const openai = new OpenAI({
-    apiKey: OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true, // Only for demo purposes
-});
+import Groq from 'groq-sdk';
 
 export async function callLLM(prompt: string, systemPrompt: string, jsonMode: boolean = false) {
-    if (OPENAI_API_KEY === 'mock-key') {
-        console.warn('Using Mock LLM Mode. Set OPENAI_API_KEY for real responses.');
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'mock-key';
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+    const openai = new OpenAI({
+        apiKey: OPENAI_API_KEY,
+        dangerouslyAllowBrowser: true,
+    });
+
+    const groq = GROQ_API_KEY ? new Groq({
+        apiKey: GROQ_API_KEY,
+        dangerouslyAllowBrowser: true
+    }) : null;
+
+    // If no real keys are provided, use Mock Mode
+    if (OPENAI_API_KEY === 'mock-key' && !GROQ_API_KEY) {
+        console.warn('Using Mock LLM Mode. Set OPENAI_API_KEY or GROQ_API_KEY for real responses.');
         await new Promise(r => setTimeout(r, 1000)); // Simulate latency
 
         if (jsonMode) {
@@ -22,23 +30,31 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
                 layout.children = [
                     { type: 'Navbar', props: { title: 'AI Commerce Pro' } },
                     {
-                        type: 'Grid', props: { columns: 4 }, children: [
-                            { type: 'Card', props: { title: 'Electronics' }, children: "Latest gadgets at best prices." },
-                            { type: 'Card', props: { title: 'Fashion' }, children: "Up to 50% off on top brands." },
-                            { type: 'Card', props: { title: 'Home' }, children: "Decorate your sanctuary." },
-                            { type: 'Card', props: { title: 'Offers' }, children: "Exclusive deals for you." }
+                        type: 'Grid', props: { columns: 1 }, children: [
+                            { type: 'SearchInput', props: { placeholder: 'Search products...', value: '' }, children: null }
                         ]
                     },
                     {
-                        type: 'Tabs', props: { tabs: [{ label: 'Deals', id: 'deals' }, { label: 'Trending', id: 'trending' }] }, children: `(activeId) => (
-            <Card title={activeId === 'deals' ? 'Special Deals' : 'Trending Now'}>
-              <Table headers={['Product', 'Price']} rows={[['iPhone 15', '₹79k'], ['Galaxy S24', '₹74k']]} />
-              <Button label="Add Mock Item to Cart" variant="primary" onClick={() => addNotification('Added to cart!')} />
-            </Card>
-          )`}
+                        type: 'Tabs', props: { tabs: [{ label: 'All Products', id: 'all' }, { label: 'Electronics', id: 'electronics' }] }, children: `(activeId) => {
+            const { addNotification } = useAppState();
+            const { data, loading, fetchItems } = useDataFetch(MOCK_DATA.products);
+            React.useEffect(() => { fetchItems(activeId === 'all' ? undefined : (p) => p.category === 'Electronics'); }, [activeId]);
+            
+            if (loading) return <LoadingSpinner />;
+            return (
+              <Grid columns={3}>
+                {data.map(p => (
+                  <Card key={p.id} title={p.name}>
+                    <p>{p.brand} - {p.price}</p>
+                    <Button label="Buy Now" variant="primary" onClick={() => addNotification('Thanks for shopping!')} />
+                  </Card>
+                ))}
+              </Grid>
+            );
+          }`}
                 ];
-                components = ['Navbar', 'Sidebar', 'Card', 'Table', 'Button', 'Tabs', 'Grid'];
-                reasoning = "Simulated a responsive e-commerce dashboard using Grid, Tabs, and Table components.";
+                components = ['Navbar', 'Sidebar', 'Card', 'Table', 'Button', 'Tabs', 'Grid', 'LoadingSpinner', 'SearchInput'];
+                reasoning = "Integrated 'useDataFetch' and 'LoadingSpinner' to simulate a real-world shopping experience with async product loading and filtering.";
             } else {
                 layout.children = [
                     { type: 'Navbar', props: { title: 'AI UI Architect' } },
@@ -110,16 +126,30 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
     }
 
     try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt }
-            ],
-            response_format: jsonMode ? { type: 'json_object' } : undefined,
-        });
+        // Preference: OpenAI if key is not the mock key, otherwise Groq
+        const useGroq = GROQ_API_KEY && (OPENAI_API_KEY === 'mock-key' || !OPENAI_API_KEY);
 
-        return response.choices[0].message.content;
+        if (useGroq && groq) {
+            const response = await groq.chat.completions.create({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt }
+                ],
+                response_format: jsonMode ? { type: 'json_object' } : undefined,
+            });
+            return response.choices[0].message.content;
+        } else {
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt }
+                ],
+                response_format: jsonMode ? { type: 'json_object' } : undefined,
+            });
+            return response.choices[0].message.content;
+        }
     } catch (error: any) {
         console.error('LLM Call Failed:', error);
         throw new Error('Failed to reach AI service: ' + error.message);
