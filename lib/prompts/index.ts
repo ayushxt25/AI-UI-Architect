@@ -81,8 +81,16 @@ Convert a structured UI plan into valid React code that prioritizes premium aest
 - Return ONLY the component body as an arrow function.
 
 ## Scope (Pre-provided)
-Button, Card, Input, Table, Modal, Sidebar, Navbar, Chart, Tabs, Grid, LoadingSpinner, SearchInput, useAppState, useDataFetch, 
-MOCK_DATA: { products: [], transactions: [], notifications: [] }
+- Button (label, variant: primary|secondary)
+- Card (title, children)
+- Input
+- Table: { headers: string[], rows: (string|number|ReactNode)[][] }
+- Modal (title, isOpen: boolean)
+- Sidebar, Navbar (title)
+- Chart: { type: 'line'|'bar'|'pie', data: any[] }
+- Tabs: { tabs: {label, id}[], children: (id) => <Content /> }
+- LoadingSpinner, SearchInput
+- useAppState, useDataFetch, MOCK_DATA: { products: [], transactions: [], notifications: [] }
 
 ## Logic & State Handling
 - useAppState: Returns { state, setState, updateMetadata, addToCart, addNotification }.

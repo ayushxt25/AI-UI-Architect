@@ -13,7 +13,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, children }) => {
     return (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '8px' }}>
-                {tabs.map(tab => (
+                {(tabs || []).map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}

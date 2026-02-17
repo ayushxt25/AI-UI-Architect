@@ -25,7 +25,7 @@ export const Chart: React.FC<ChartProps> = ({ type, data, style }) => {
                 {type} Chart Placeholder
             </div>
             <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                Data Context: {JSON.stringify(data).substring(0, 50)}...
+                Data Context: {data ? JSON.stringify(data).substring(0, 50) : 'No data provided'}...
             </div>
             <div style={{
                 marginTop: '20px',
