@@ -5,6 +5,8 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { CodePanel } from '@/components/CodePanel';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { VersionHistory } from '@/components/VersionHistory';
+import { ThemeSettings } from '@/components/ThemeSettings';
+import { AppStateProvider } from '@/lib/state/appState';
 
 const INITIAL_CODE = `
 () => {
@@ -59,17 +61,21 @@ export default function Home() {
   };
 
   return (
-    <main style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <ChatPanel onNewVersion={handleNewVersion} currentVersionId={version?.id} />
-        <CodePanel code={code} onChange={(val) => setCode(val || '')} />
-        <PreviewPanel code={code} />
-      </div>
-      <VersionHistory
-        versions={history}
-        onRollback={handleRollback}
-        currentVersionId={version?.id}
-      />
-    </main>
+    <AppStateProvider>
+      <main style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '400px', borderRight: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <ThemeSettings />
+            <ChatPanel onNewVersion={handleNewVersion} currentVersionId={version?.id} />
+          </div>
+          <PreviewPanel code={code} />
+        </div>
+        <VersionHistory
+          versions={history}
+          onRollback={handleRollback}
+          currentVersionId={version?.id}
+        />
+      </main>
+    </AppStateProvider>
   );
 }

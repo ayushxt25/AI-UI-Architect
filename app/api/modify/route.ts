@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runPlanner } from '@/lib/agents/planner';
+import { runEditor } from '@/lib/agents/editor';
 import { runGenerator } from '@/lib/agents/generator';
 import { runExplainer } from '@/lib/agents/explainer';
+import { runFixer } from '@/lib/agents/fixer';
+import { validateGeneratedCode } from '@/lib/validation/codeValidator';
 import { versionStore } from '@/lib/versioning/versionStore';
 import { checkPromptSafety } from '@/lib/security/promptGuard';
 
@@ -9,8 +11,8 @@ export async function POST(req: NextRequest) {
     try {
         const { intent, versionId } = await req.json();
 
-        if (!intent) {
-            return NextResponse.json({ error: 'Intent is required' }, { status: 400 });
+        if (!intent || typeof versionId !== 'number') {
+            return NextResponse.json({ error: 'Intent and versionId are required' }, { status: 400 });
         }
 
         const safety = checkPromptSafety(intent);
@@ -18,26 +20,41 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: safety.reason }, { status: 403 });
         }
 
-        const previousVersion = versionId
-            ? versionStore.getHistory().find(v => v.id === versionId)
-            : versionStore.getCurrent();
-
-        if (!previousVersion) {
-            return NextResponse.json({ error: 'Previous version not found' }, { status: 404 });
+        const existingVersion = versionStore.get(versionId);
+        if (!existingVersion) {
+            return NextResponse.json({ error: 'Version not found' }, { status: 404 });
         }
 
-        // 1. Plan (with modification context)
-        const plan = await runPlanner(intent, previousVersion.plan);
+        // 1. Edit the Plan
+        const newPlan = await runEditor(intent, existingVersion.plan);
 
-        // 2. Generate (with incremental update logic)
-        const code = await runGenerator(plan, previousVersion.code);
+        // 2. Generate with Self-Healing Middleware
+        let code = await runGenerator(newPlan, existingVersion.code);
+        let retries = 0;
+        let isStable = false;
+        const maxRetries = 5;
 
-        // 3. Explain
-        const explanation = await runExplainer(intent, plan, 'Modification requested');
+        while (retries < maxRetries && !isStable) {
+            const validationResult = validateGeneratedCode(code);
+            if (validationResult.success) {
+                isStable = true;
+            } else {
+                console.warn(`[Pipeline] Modification Self-Healing Attempt ${retries + 1}: ${validationResult.error}`);
+                code = await runFixer(code, validationResult.error || "Unknown error", retries);
+                retries++;
+            }
+        }
+
+        if (!isStable) {
+            throw new Error(`Unable to modify into a stable UI after ${maxRetries} self-healing attempts. Please reformulate.`);
+        }
+
+        // 3. Explain the Modification
+        const explanation = await runExplainer(intent, newPlan);
 
         // 4. Store
         const version = versionStore.push({
-            plan: { ...plan, hash: (plan as any).hash },
+            plan: newPlan,
             code,
             explanation
         });

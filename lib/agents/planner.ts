@@ -16,8 +16,8 @@ EXISTING PLAN: ${existingPlan ? JSON.stringify(existingPlan) : 'null'}
     const validation = validatePlan(plan);
 
     if (!validation.success) {
-        console.error('Plan Validation Error:', validation.error);
-        throw new Error('Generated plan failed validation');
+        console.error('Plan Validation Error:', JSON.stringify(validation.error, null, 2));
+        throw new Error(`Generated plan failed validation: ${JSON.stringify(validation.error)}`);
     }
 
     return validation.data as UIPlan;

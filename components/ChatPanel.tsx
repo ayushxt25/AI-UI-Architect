@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from './ui';
+import { useAppState } from '@/lib/state/appState';
 import { DiffViewer } from './DiffViewer';
 
 interface Message {
@@ -15,6 +16,9 @@ interface ChatPanelProps {
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ onNewVersion, currentVersionId }) => {
+    const { state } = useAppState();
+    const { themeConfig } = state;
+
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: "Hello! I'm your AI UI Architect. What would you like to build today?" }
     ]);
@@ -37,9 +41,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onNewVersion, currentVersi
 
             const actualVersionId = isFreshIntent ? undefined : currentVersionId;
             const endpoint = actualVersionId ? '/api/modify' : '/api/generate';
+
+            // Append the theme context to the intent so the prompt is aware
+            const richIntent = `[CONTEXT: The current UI theme is ${themeConfig.theme}, with primary color ${themeConfig.primaryColor}, secondary color ${themeConfig.secondaryColor}, and font ${themeConfig.fontFamily}. Ensure any generic references to colors use these settings or 'var(--primary)'.]\n\nUser Request: ${userMessage.content}`;
+
             const body = actualVersionId
-                ? { intent: userMessage.content, versionId: actualVersionId }
-                : { intent: userMessage.content };
+                ? { intent: richIntent, versionId: actualVersionId }
+                : { intent: richIntent };
 
             const response = await fetch(endpoint, {
                 method: 'POST',

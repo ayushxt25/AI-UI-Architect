@@ -4,6 +4,8 @@ import { runGenerator } from '@/lib/agents/generator';
 import { runExplainer } from '@/lib/agents/explainer';
 import { versionStore } from '@/lib/versioning/versionStore';
 import { checkPromptSafety } from '@/lib/security/promptGuard';
+import { runFixer } from '@/lib/agents/fixer';
+import { validateGeneratedCode } from '@/lib/validation/codeValidator';
 
 export async function POST(req: NextRequest) {
     try {
@@ -21,8 +23,26 @@ export async function POST(req: NextRequest) {
         // 1. Plan
         const plan = await runPlanner(intent);
 
-        // 2. Generate
-        const code = await runGenerator(plan);
+        // 2. Generate with Self-Healing Middleware
+        let code = await runGenerator(plan);
+        let retries = 0;
+        let isStable = false;
+        const maxRetries = 5;
+
+        while (retries < maxRetries && !isStable) {
+            const validationResult = validateGeneratedCode(code);
+            if (validationResult.success) {
+                isStable = true;
+            } else {
+                console.warn(`[Pipeline] Self-Healing Attempt ${retries + 1} for: ${validationResult.error}`);
+                code = await runFixer(code, validationResult.error || "Unknown error", retries);
+                retries++;
+            }
+        }
+
+        if (!isStable) {
+            throw new Error(`Unable to build stable UI after ${maxRetries} self-healing attempts. Please reformulate your prompt.`);
+        }
 
         // 3. Explain
         const explanation = await runExplainer(intent, plan);

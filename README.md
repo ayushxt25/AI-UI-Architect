@@ -35,11 +35,15 @@ A production-grade AI system for generating and modifying React UI components us
    ```
 
 3. **Configure Environment**:
-   Create a `.env.local` file and add your OpenAI API key:
+   Create a `.env.local` file and add your API keys:
    ```bash
+   # Option 1: OpenAI (Paid)
    OPENAI_API_KEY=your_openai_api_key
+
+   # Option 2: Groq (Free Tier - Recommended)
+   GROQ_API_KEY=your_groq_api_key
    ```
-   *(Note: The system will run in Mock Mode if no key is provided.)*
+   *(Note: Link will prioritize OpenAI if both are present. If neither is provided, the system defaults to Mock Mode.)*
 
 4. **Run the development server**:
    ```bash

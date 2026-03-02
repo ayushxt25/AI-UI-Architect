@@ -1,23 +1,11 @@
-import OpenAI from 'openai';
-import Groq from 'groq-sdk';
+import { GoogleGenAI } from '@google/genai';
 
 export async function callLLM(prompt: string, systemPrompt: string, jsonMode: boolean = false) {
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'mock-key';
-    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    const AI_API_KEY = process.env.AI_API_KEY;
 
-    const openai = new OpenAI({
-        apiKey: OPENAI_API_KEY,
-        dangerouslyAllowBrowser: true,
-    });
-
-    const groq = GROQ_API_KEY ? new Groq({
-        apiKey: GROQ_API_KEY,
-        dangerouslyAllowBrowser: true
-    }) : null;
-
-    // If no real keys are provided, use Mock Mode
-    if (OPENAI_API_KEY === 'mock-key' && !GROQ_API_KEY) {
-        console.warn('Using Mock LLM Mode. Set OPENAI_API_KEY or GROQ_API_KEY for real responses.');
+    // If no real key is provided, use Mock Mode
+    if (!AI_API_KEY) {
+        console.warn('Using Mock LLM Mode. Set AI_API_KEY for real responses.');
         await new Promise(r => setTimeout(r, 1000)); // Simulate latency
 
         if (jsonMode) {
@@ -31,7 +19,7 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
                     { type: 'Navbar', props: { title: 'AI Commerce Pro' } },
                     {
                         type: 'Grid', props: { columns: 1 }, children: [
-                            { type: 'SearchInput', props: { placeholder: 'Search products...', value: '' }, children: null }
+                            { type: 'SearchInput', props: { placeholder: 'Search products...', value: '' } }
                         ]
                     },
                     {
@@ -51,9 +39,10 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
                 ))}
               </Grid>
             );
-          }`}
+          }`
+                    }
                 ];
-                components = ['Navbar', 'Sidebar', 'Card', 'Table', 'Button', 'Tabs', 'Grid', 'LoadingSpinner', 'SearchInput'];
+                components = ['Navbar', 'Card', 'Button', 'Tabs', 'Grid', 'LoadingSpinner', 'SearchInput'];
                 reasoning = "Integrated 'useDataFetch' and 'LoadingSpinner' to simulate a real-world shopping experience with async product loading and filtering.";
             } else {
                 layout.children = [
@@ -77,7 +66,7 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
         }
 
         if (systemPrompt.includes('Explainer')) {
-            return "I have synthesized a multi-panel layout utilizing our whitelisted components. The structure prioritizes hierarchical navigation (Sidebar) and clear data visualization (Charts/Tables).";
+            return "I have synthesized a multi-panel layout utilizing our whitelisted components. The structure prioritizes hierarchical navigation and clear data visualization.";
         }
 
         // Generator Mock: Build a functional component string from the plan
@@ -91,6 +80,8 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
                         if (node.trim().startsWith('(') || node.trim().startsWith('{')) return node;
                         return `"${node}"`;
                     }
+                    if (!node || !node.type) return '';
+
                     const nodeType = node.type === 'root' ? 'div' : node.type;
                     const props = Object.entries(node.props || {}).map(([k, v]) => {
                         if (typeof v === 'string' && (v.trim().startsWith('(') || v.trim().startsWith('()'))) {
@@ -103,7 +94,7 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
                         : '';
 
                     if (node.type === 'root') {
-                        return `<div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '0px' }}>${children}</div>`;
+                        return `<div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '0px' }}>\n${children}\n</div>`;
                     }
 
                     // Support unquoted functional children for render-prop components like Tabs
@@ -125,33 +116,40 @@ export async function callLLM(prompt: string, systemPrompt: string, jsonMode: bo
         return "() => <div>Failed to generate mock code. Check logs.</div>";
     }
 
-    try {
-        // Preference: OpenAI if key is not the mock key, otherwise Groq
-        const useGroq = GROQ_API_KEY && (OPENAI_API_KEY === 'mock-key' || !OPENAI_API_KEY);
+    let retries = 0;
+    const maxRetries = 3;
+    const models = ['gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'];
 
-        if (useGroq && groq) {
-            const response = await groq.chat.completions.create({
-                model: 'llama-3.3-70b-versatile',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                response_format: jsonMode ? { type: 'json_object' } : undefined,
+    while (retries < maxRetries) {
+        const modelToUse = models[retries % models.length];
+        try {
+            const ai = new GoogleGenAI({ apiKey: AI_API_KEY });
+            const response = await ai.models.generateContent({
+                model: modelToUse,
+                contents: prompt,
+                config: {
+                    systemInstruction: systemPrompt,
+                    responseMimeType: jsonMode ? 'application/json' : 'text/plain',
+                    temperature: 0.1,
+                }
             });
-            return response.choices[0].message.content;
-        } else {
-            const response = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                response_format: jsonMode ? { type: 'json_object' } : undefined,
-            });
-            return response.choices[0].message.content;
+
+            return response.text || '';
+
+        } catch (error: any) {
+            const isQuotaError = error.message?.includes('429') || error.message?.includes('Quota');
+
+            if (isQuotaError && retries < maxRetries - 1) {
+                const waitTime = Math.pow(2, retries) * 3000 + (Math.random() * 1000);
+                console.warn(`[LLM] Quota exceeded on ${models[retries % models.length]}. Retrying with ${models[(retries + 1) % models.length]} in ${Math.round(waitTime)}ms...`);
+                await new Promise(r => setTimeout(r, waitTime));
+                retries++;
+                continue;
+            }
+
+            console.error('Core AI Call Failed:', error);
+            throw new Error('Failed to reach AI service: ' + error.message);
         }
-    } catch (error: any) {
-        console.error('LLM Call Failed:', error);
-        throw new Error('Failed to reach AI service: ' + error.message);
     }
+    return '';
 }

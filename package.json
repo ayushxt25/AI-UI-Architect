@@ -5,24 +5,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:models": "ts-node scripts/stress_test.ts"
   },
   "dependencies": {
+    "@google/genai": "^1.43.0",
+    "@monaco-editor/react": "latest",
+    "groq-sdk": "^0.37.0",
+    "lucide-react": "latest",
     "next": "latest",
+    "openai": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest",
-    "zod": "latest",
-    "@monaco-editor/react": "latest",
     "react-live": "latest",
-    "openai": "latest"
+    "zod": "latest"
   },
   "devDependencies": {
-    "typescript": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
-    "eslint-config-next": "latest"
+    "eslint-config-next": "latest",
+    "typescript": "latest"
   }
 }

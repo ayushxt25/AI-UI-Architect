@@ -37,5 +37,17 @@ export function validateGeneratedCode(code: string): { success: boolean; error?:
         }
     }
 
+    // 4. Buble Compilation Syntax Heuristics
+    // Buble compiler crashes on TS Interfaces, Types, and Export statements inline.
+    if (code.match(/\binterface\s+[A-Za-z0-9_]+\s*\{/)) {
+        return { success: false, error: "TypeScript 'interface' detected. React-Live (Buble) requires pure JavaScript." };
+    }
+    if (code.match(/\btype\s+[A-Za-z0-9_]+\s*=/)) {
+        return { success: false, error: "TypeScript 'type' definition detected. Pure JS only." };
+    }
+    if (code.match(/\bexport\s+(default|const|let|var|function|class)\b/)) {
+        return { success: false, error: "'export' statement detected. Return only the inline function." };
+    }
+
     return { success: true };
 }

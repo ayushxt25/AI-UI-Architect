@@ -23,6 +23,10 @@ class VersionStore {
         return [...this.versions];
     }
 
+    get(id: number) {
+        return this.versions.find(v => v.id === id) || null;
+    }
+
     rollback(id: number) {
         const index = this.versions.findIndex(v => v.id === id);
         if (index !== -1) {

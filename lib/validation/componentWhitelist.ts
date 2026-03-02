@@ -6,5 +6,13 @@ export const COMPONENT_WHITELIST = [
     'Modal',
     'Sidebar',
     'Navbar',
-    'Chart'
+    'Chart',
+    'Tabs',
+    'Grid',
+    'LoadingSpinner',
+    'SearchInput',
+    'Hero',
+    'Pricing',
+    'Form',
+    'Footer'
 ];

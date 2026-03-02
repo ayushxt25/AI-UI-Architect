@@ -7,6 +7,12 @@ interface AppState {
     user: any | null;
     notifications: string[];
     metadata: Record<string, any>;
+    themeConfig: {
+        primaryColor: string;
+        secondaryColor: string;
+        theme: 'light' | 'dark';
+        fontFamily: string;
+    };
 }
 
 interface AppContextType {
@@ -15,6 +21,7 @@ interface AppContextType {
     updateMetadata: (key: string, value: any) => void;
     addToCart: (item: any) => void;
     addNotification: (msg: string) => void;
+    setThemeConfig: (config: Partial<AppState['themeConfig']>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -24,7 +31,13 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
         cart: [],
         user: { name: 'Demo User', role: 'Architect' },
         notifications: [],
-        metadata: {}
+        metadata: {},
+        themeConfig: {
+            primaryColor: '#4f46e5',
+            secondaryColor: '#f97316',
+            theme: 'dark',
+            fontFamily: "'Inter', sans-serif"
+        }
     });
 
     const updateMetadata = (key: string, value: any) => {
@@ -39,8 +52,12 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
         setState(prev => ({ ...prev, notifications: [...prev.notifications, msg] }));
     };
 
+    const setThemeConfig = (config: Partial<AppState['themeConfig']>) => {
+        setState(prev => ({ ...prev, themeConfig: { ...prev.themeConfig, ...config } }));
+    };
+
     return (
-        <AppContext.Provider value={{ state, setState, updateMetadata, addToCart, addNotification }}>
+        <AppContext.Provider value={{ state, setState, updateMetadata, addToCart, addNotification, setThemeConfig }}>
             {children}
         </AppContext.Provider>
     );

@@ -1,19 +1,9 @@
-export interface UIPlan {
-    layout: {
-        type: string;
-        props?: Record<string, any>;
-        children?: UIPlan[] | string | string[];
-    };
-    components_used: string[];
-    reasoning: string;
-    constraint_notice: string;
-    hash?: string;
-    modifications?: {
-        add: any[];
-        update: any[];
-        remove: any[];
-    } | null;
-}
+import { z } from 'zod';
+import { UIPlanSchema, UIComponentSchema } from '../lib/validation/planValidator';
+
+export type UIComponent = z.infer<typeof UIComponentSchema>;
+
+export type UIPlan = z.infer<typeof UIPlanSchema> & { hash?: string };
 
 export interface Version {
     id: number;
